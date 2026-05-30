@@ -1,0 +1,65 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Section from "../components/Section.astro";
+import Entry from "../components/Entry.astro";
+
+const projects = [
+	{
+		title: "Gnome Trader",
+		meta: "POSTMORTEM",
+		href: "/projects/gnome-trader",
+		summary:
+			"Autonomous trading platform built around the Solana ecosystem. Strategy execution, exchange integration, monitoring. Discontinued — operational story in postmortem.",
+		tags: ["solana", "trading", "autonomous", "infra"],
+	},
+	{
+		title: "GnomeAIO",
+		meta: "POSTMORTEM",
+		href: "/projects/gnome-aio",
+		summary:
+			"Multi-agent orchestration platform for headless game clients. Queue-based task execution, websocket coordination, resource allocation across many workers. Discontinued — operational story in postmortem.",
+		tags: ["multi-agent", "orchestration", "websockets", "autonomous"],
+	},
+	{
+		title: "SECOM Nexus",
+		meta: "2022 — PRESENT",
+		href: "/projects/secom-nexus",
+		summary:
+			"Internal enterprise platform replacing several legacy CAFM and workflow systems. Event-driven core, OAuth, integrations with field operations and finance.",
+		tags: ["fastapi", "react", "postgres", "gcp", "oauth", "events"],
+	},
+	{
+		title: "Molten Steel Tracker",
+		meta: "AUTOMATION",
+		href: "/projects/molten-steel-tracker",
+		summary:
+			"British Steel tracker for material used/wasted.",
+		tags: ["heavy-industry", "sensors", "state-machine"],
+	},
+];
+---
+
+<BaseLayout title="projects" section="PROJECTS">
+
+	<Section title="NAME">
+		<p>projects</p>
+	</Section>
+
+	<Section title="INDEX">
+		<div class="space-y-6">
+			{projects.map((p) => (
+				<Entry title={p.title} meta={p.meta} href={p.href} tags={p.tags}>
+					{p.summary}
+				</Entry>
+			))}
+		</div>
+	</Section>
+
+	<Section title="NOTES">
+		<p class="text-ink-soft">
+			Each project page documents the problem and the architecture. The postmortems explain
+            the things that worked and the things that did not.
+        </p>
+	</Section>
+
+</BaseLayout>

@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+	--color-paper: #EEE7CF;
+	--color-paper-shade: #E5DEC4;
+	--color-ink: #111111;
+	--color-ink-soft: #444444;
+	--color-rule: #1111111a;
+	--color-rule-strong: #11111133;
+
+	--font-mono:
+		"IBM Plex Mono", "JetBrains Mono", "Courier Prime", "Courier New",
+		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+	--text-base: 15px;
+	--text-base--line-height: 1.65;
+
+	--container-prose: 880px;
+}
+
+@layer base {
+	html {
+		font-family: var(--font-mono);
+		font-size: var(--text-base);
+		line-height: var(--text-base--line-height);
+		color: var(--color-ink);
+		background-color: var(--color-paper);
+		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
+	}
+
+	body {
+		min-height: 100dvh;
+		background-color: var(--color-paper);
+		background-image: radial-gradient(
+			circle,
+			rgba(17, 17, 17, 0.09) 0.9px,
+			transparent 1.2px
+		);
+		background-size: 24px 24px;
+		background-position: 0 0;
+	}
+
+	::selection {
+		background: #111111;
+		color: #EEE7CF;
+	}
+
+	a {
+		color: inherit;
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 3px;
+	}
+
+	a:hover {
+		background: #111111;
+		color: #EEE7CF;
+		text-decoration: none;
+	}
+
+	h1, h2, h3, h4 {
+		font-weight: 600;
+		letter-spacing: -0.01em;
+	}
+
+	hr {
+		border: none;
+		border-top: 1px dashed var(--color-rule-strong);
+		margin: 2rem 0;
+	}
+
+	code, pre, kbd, samp {
+		font-family: var(--font-mono);
+	}
+}

@@ -1,0 +1,96 @@
+---
+import "../styles/global.css";
+
+interface Props {
+	title?: string;
+	section?: string;
+	description?: string;
+}
+
+const {
+	title,
+	section = "INDEX",
+	description = "Brad Gooseman — cybernetics, autonomous systems, automation. Multi-agent orchestration, event-driven business platforms, autonomous trading.",
+} = Astro.props;
+
+const fullTitle = title ? `${title} — gooseman(1)` : "gooseman(1) — Brad Gooseman";
+const pathname = Astro.url.pathname.replace(/\/+$/, "") || "/";
+
+const nav = [
+	{ href: "/", label: "index" },
+	{ href: "/cv", label: "cv" },
+	{ href: "/projects", label: "projects" },
+	{ href: "/postmortems", label: "postmortems" },
+	// { href: "/articles", label: "articles" },  // hidden until articles are ready
+	{ href: "/contact", label: "contact" },
+];
+
+const isActive = (href: string) =>
+	href === "/" ? pathname === "/" : pathname.startsWith(href);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<meta name="color-scheme" content="light" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap"
+		/>
+		<title>{fullTitle}</title>
+	</head>
+	<body class="text-ink">
+		<div class="mx-auto w-full max-w-[var(--container-prose)] px-6 sm:px-10 py-10 sm:py-14">
+
+			<header class="mb-10 sm:mb-14">
+				<div class="flex items-baseline justify-between gap-4 border-b border-dashed border-[var(--color-rule-strong)] pb-2 text-xs uppercase tracking-[0.18em] text-ink-soft">
+					<span>GOOSEMAN(1)</span>
+					<span class="hidden sm:inline">{section}</span>
+					<span>GOOSEMAN(1)</span>
+				</div>
+
+				<nav aria-label="Primary" class="mt-6 text-sm">
+					<ul class="flex flex-wrap gap-x-1 gap-y-1 text-ink-soft">
+						{nav.map((item, i) => (
+							<li class="flex items-center gap-1">
+								{i > 0 && <span aria-hidden="true" class="text-[var(--color-rule-strong)]">·</span>}
+								<a
+									href={item.href}
+									class:list={[
+										"no-underline px-1",
+										isActive(item.href)
+											? "text-ink font-medium bg-[var(--color-paper-shade)]"
+											: "hover:bg-ink hover:text-paper",
+									]}
+									aria-current={isActive(item.href) ? "page" : undefined}
+								>
+									{item.label}
+								</a>
+							</li>
+						))}
+					</ul>
+				</nav>
+			</header>
+
+			<main>
+				<slot />
+			</main>
+
+			<footer class="mt-20 pt-6 border-t border-dashed border-[var(--color-rule-strong)] text-xs text-ink-soft">
+				<div class="flex flex-col sm:flex-row sm:justify-between gap-2">
+					<span>© {new Date().getFullYear()} brad gooseman</span>
+					<span>set in ibm plex mono · built with astro · hosted on github pages</span>
+				</div>
+			</footer>
+
+		</div>
+	</body>
+</html>

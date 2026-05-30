@@ -1,17 +1,118 @@
 ---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Section from "../components/Section.astro";
+import Entry from "../components/Entry.astro";
+import DefList from "../components/DefList.astro";
 
+const systems = [
+	{
+		title: "Gnome Trader",
+		meta: "AUTONOMOUS",
+		href: "/projects/gnome-trader",
+		summary:
+			"Autonomous trading system on the Solana ecosystem. Strategy execution, exchange integration, operational monitoring.",
+            tags: ["multi-agent", "solana", "trading", "block-chain", "swarm-control"],
+	},
+	{
+		title: "GnomeAIO",
+		meta: "AUTONOMOUS",
+		href: "/projects/gnome-aio",
+		summary:
+			"Multi-agent autonomous platform.",
+		tags: ["multi-agent", "orchestration", "swarm-control"],
+	},
+	{
+		title: "SECOM Nexus",
+		meta: "AUTOMATION · 2024 — PRESENT",
+		href: "/projects/secom-nexus",
+		summary:
+			"Internal Automation Platform",
+		tags: ["fastapi", "postgres", "gcp", "redis"],
+	},
+	{
+		title: "Molten Steel Tracker",
+		meta: "AUTOMATION",
+		href: "/projects/molten-steel-tracker",
+		summary:
+			"British Steel tracker for material used/wasted.",
+		tags: ["heavy-industry", "sensors", "state-machine"],
+	},
+];
+
+// Writing section disabled — re-enable when articles are ready.
+// const writing = [
+// 	{
+// 		title: "Reframing businesses as cybernetic systems",
+// 		meta: "DRAFT",
+// 		summary: "Most companies are control systems being run as org charts. What changes when you take the loops seriously.",
+// 	},
+// ];
+
+const provenance = [
+	{ term: "role", value: "Lead Software Engineer, SECOM UK" },
+	{ term: "background", value: "BSc Robotics & Mechatronics" },
+	{ term: "email", value: "brad_gooseman@hotmail.com", href: "mailto:brad_gooseman@hotmail.com" },
+	{ term: "github", value: "github.com/gooseUK", href: "https://github.com/gooseUK" },
+	{ term: "linkedin", value: "uk.linkedin.com/in/brad-gooseman-8788a6241", href: "https://uk.linkedin.com/in/brad-gooseman-8788a6241" },
+];
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout section="HOME">
+
+	<Section title="NAME">
+		<p class="text-base sm:text-lg">
+			<span class="text-xl sm:text-2xl font-semibold tracking-tight">brad gooseman</span>
+			<span class="text-ink-soft"> — cybernetics · autonomous systems · automation</span>
+		</p>
+	</Section>
+
+	<Section title="DESCRIPTION">
+		<p>
+			My long-running interest is the cybernetic structure of
+			businesses. Most companies are run as org charts. They
+			are actually control systems, with loops that have been
+			assembled or broken by accident. The work below is what
+			it looks like to take that seriously: event-driven
+			business platforms, multi-agent orchestration,
+			autonomous trading systems.
+		</p>
+		<p class="text-ink-soft">
+			The direction I am pointed: businesses whose internal
+			control loops are closed in software rather than in
+			meetings.
+		</p>
+	</Section>
+
+	<Section title="SYSTEMS">
+		<div class="space-y-5">
+			{systems.map((s) => (
+				<Entry title={s.title} meta={s.meta} href={s.href} tags={s.tags}>
+					{s.summary}
+				</Entry>
+			))}
+		</div>
+		<p class="text-sm text-ink-soft pt-2">
+			→ <a href="/projects">full index</a>
+		</p>
+	</Section>
+
+	{/*
+	<Section title="WRITING">
+		<div class="space-y-5">
+			{writing.map((w) => (
+				<Entry title={w.title} meta={w.meta}>
+					{w.summary}
+				</Entry>
+			))}
+		</div>
+		<p class="text-sm text-ink-soft pt-2">
+			→ <a href="/articles">all writing</a> &nbsp; · &nbsp; <a href="/postmortems">all postmortems</a>
+		</p>
+	</Section>
+	*/}
+
+	<Section title="PROVENANCE">
+		<DefList items={provenance} />
+	</Section>
+
+</BaseLayout>

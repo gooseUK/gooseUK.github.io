@@ -1,0 +1,29 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Section from "../components/Section.astro";
+import DefList from "../components/DefList.astro";
+
+const contact = [
+	{ term: "email", value: "brad_gooseman@hotmail.com", href: "mailto:brad_gooseman@hotmail.com" },
+	{ term: "github", value: "github.com/gooseUK", href: "https://github.com/gooseUK" },
+	{ term: "linkedin", value: "uk.linkedin.com/in/brad-gooseman-8788a6241", href: "https://uk.linkedin.com/in/brad-gooseman-8788a6241" },
+];
+---
+
+<BaseLayout title="contact" section="CONTACT">
+
+	<Section title="NAME">
+		<p>contact</p>
+	</Section>
+
+	<Section title="CHANNELS">
+		<DefList items={contact} />
+	</Section>
+
+	<Section title="NOTE">
+		<p class="text-ink-soft">
+            Happy to talk about ideas, job offers, contract work. Will accept crypto.
+		</p>
+	</Section>
+
+</BaseLayout>

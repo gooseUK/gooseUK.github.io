@@ -1,0 +1,151 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Section from "../components/Section.astro";
+import DefList from "../components/DefList.astro";
+
+const experience = [
+	{
+		role: "Lead Software Engineer",
+		org: "SECOM Plc",
+		period: "Sep 2024 — Present",
+		bullets: [
+			"Technical lead for architecting and delivering enterprise internal systems, replacing fragmented spreadsheet-driven business processes.",
+			"Design and build scalable backend services to ingest, transform, and synchronise operational data across on-premises and third-party systems.",
+			"Built a centralised platform automating core business workflows and mission-critical document generation across the organisation.",
+			"Own end-to-end system architecture, deployment strategy, and operational reliability across new and legacy-integrated services.",
+			"Lead phased modernisation of legacy platforms into service-based systems while ensuring uninterrupted business continuity.",
+		],
+	},
+	{
+		role: "Founder / Software Engineer",
+		org: "Gnome Trader",
+		period: "Mar 2024 — Present",
+		bullets: [
+			"Designed and built an automated crypto-based settlement and delivery system integrating blockchain transactions with real-time backend services.",
+			"Implemented Python services using FastAPI, WebSockets, Redis, and PostgreSQL to coordinate event-driven workflows and stateful task execution.",
+			"Built reconciliation logic to verify on-chain Solana transactions before triggering downstream fulfilment and confirmation flows.",
+			"Reduced end-to-end delivery latency from approximately one hour of manual processing to sub-20-second automated execution.",
+			"Engineered the system to handle concurrent orders, partial failures, and retry-safe processing across distributed components.",
+		],
+	},
+	{
+		role: "Systems Engineer",
+		org: "British Steel",
+		period: "Jan 2024 — Sep 2024",
+		bullets: [
+			"Worked on operational systems supporting logistics, asset tracking, and financial reporting across large-scale industrial operations.",
+			"Developed and maintained data pipelines combining GPS telemetry, on-site sensor data, and legacy systems to support real-time decision-making.",
+			"Interfaced with and maintained legacy Fortran-based systems critical to ongoing production and reporting workflows.",
+			"Built and validated datasets used for cost tracking, efficiency analysis, and operational optimisation.",
+		],
+	},
+	{
+		role: "Offshore Wind Turbine Engineer",
+		org: "E.ON Energy",
+		period: "Sep 2015 — May 2018",
+		bullets: [
+			"Hands-on maintenance role on offshore wind turbines in a safety-critical industrial environment, prior to transitioning into software engineering.",
+		],
+	},
+];
+
+const education = {
+	institution: "University of Hull",
+	degree: "BSc Robotics and Mechatronics (2:1)",
+	period: "Sep 2019 — May 2022",
+};
+
+const skills = [
+	{ term: "backend", value: "Python services, FastAPI, async workflows, API integration" },
+	{ term: "frontend", value: "React, JavaScript, TypeScript, Phantom Wallet" },
+	{ term: "data & state", value: "PostgreSQL, reconciliation logic, idempotent processing" },
+	{ term: "real-time", value: "WebSockets, event-driven architectures, concurrent task coordination" },
+	{ term: "cloud", value: "Google Cloud (Cloud Run, managed services, virtual machines), Pulumi" },
+	{ term: "crypto", value: "Solana transactions, on-chain verification, settlement flows" },
+];
+---
+
+<BaseLayout title="cv" section="CV">
+
+	<section class="mb-12 grid grid-cols-[1fr_auto] gap-6 sm:gap-8 items-start">
+		<div>
+			<h2 class="text-xs font-semibold uppercase tracking-[0.22em] text-ink-soft mb-4 border-b border-dashed border-[var(--color-rule-strong)] pb-1">
+				NAME
+			</h2>
+			<p class="text-[15px] leading-relaxed">
+				brad gooseman — cybernetics · autonomous systems · automation
+			</p>
+		</div>
+		<figure class="w-28 sm:w-36 shrink-0">
+			<img
+				src="/brad-halftone.png"
+				alt="Halftone portrait of Brad Gooseman"
+				width="400"
+				height="419"
+				class="w-full h-auto border border-dashed border-[var(--color-rule-strong)] p-1.5 bg-[var(--color-paper)]"
+			/>
+			<figcaption class="text-[10.5px] uppercase tracking-[0.2em] text-ink-soft mt-2 text-center">
+				fig. 1 · gooseman
+			</figcaption>
+		</figure>
+	</section>
+
+	<Section title="DESCRIPTION">
+		<p>
+			I have worked across many disciplines in the engineering world.
+			Hands-on maintenance and troubleshooting on offshore wind
+			turbines at E.ON Energy. Electronics and control systems
+			through a Robotics and Mechatronics degree at Hull. Industrial
+			systems engineering at British Steel, working with telemetry,
+			sensors, and legacy production systems. Software engineering
+			at SECOM Plc and on my own ventures.
+		</p>
+		<p>
+			It is the same kind of work whether the system is mechanical,
+			electronic, or software. Sensors, actuators, controllers,
+			feedback loops, disturbances. I work mostly in software now
+			because that is where most broken business loops sit.
+		</p>
+		<p>
+			At <span class="text-ink">SECOM UK</span> I lead the engineering
+			work on a new internal platform that replaces several legacy
+			systems, closing loops the business currently runs by hand.
+		</p>
+	</Section>
+
+	<Section title="EXPERIENCE">
+		<div class="space-y-6">
+			{experience.map((e) => (
+				<div class="border-l-2 border-[var(--color-rule-strong)] pl-4">
+					<div class="flex flex-wrap items-baseline justify-between gap-x-4">
+						<h3 class="text-base font-semibold">{e.role}, {e.org}</h3>
+						<span class="text-xs text-ink-soft uppercase tracking-widest">{e.period}</span>
+					</div>
+					<ul class="mt-2 space-y-1 text-[14.5px] text-ink-soft leading-relaxed list-none">
+						{e.bullets.map((b) => <li>· {b}</li>)}
+					</ul>
+				</div>
+			))}
+		</div>
+	</Section>
+
+	<Section title="EDUCATION">
+		<div class="border-l-2 border-[var(--color-rule-strong)] pl-4">
+			<div class="flex flex-wrap items-baseline justify-between gap-x-4">
+				<h3 class="text-base font-semibold">{education.degree}, {education.institution}</h3>
+				<span class="text-xs text-ink-soft uppercase tracking-widest">{education.period}</span>
+			</div>
+		</div>
+	</Section>
+
+	<Section title="SKILLS">
+		<DefList items={skills} />
+	</Section>
+
+	<Section title="DOWNLOAD">
+		<p>
+			<a href="/cv.pdf">view pdf</a> &nbsp; · &nbsp; <a href="/cv.pdf" download>download pdf</a>
+		</p>
+	</Section>
+
+</BaseLayout>

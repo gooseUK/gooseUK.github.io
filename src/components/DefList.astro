@@ -1,0 +1,24 @@
+---
+interface Item {
+	term: string;
+	value: string;
+	href?: string;
+}
+interface Props {
+	items: Item[];
+}
+const { items } = Astro.props;
+---
+
+<dl class="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1.5 text-[14.5px]">
+	{items.map((item) => (
+		<>
+			<dt class="text-ink-soft uppercase tracking-[0.15em] text-[11.5px] pt-1">
+				{item.term}
+			</dt>
+			<dd>
+				{item.href ? <a href={item.href}>{item.value}</a> : item.value}
+			</dd>
+		</>
+	))}
+</dl>

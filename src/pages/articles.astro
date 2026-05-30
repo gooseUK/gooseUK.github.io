@@ -1,0 +1,58 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Section from "../components/Section.astro";
+import Entry from "../components/Entry.astro";
+
+const articles = [
+	{
+		title: "Designing event-driven business systems",
+		meta: "DRAFT",
+		summary: "Modelling business workflows as event streams — when it pays off, when it costs more than it saves.",
+	},
+	{
+		title: "FastAPI at scale",
+		meta: "DRAFT",
+		summary: "What FastAPI gets right for medium-sized internal platforms, and where the patterns break down.",
+	},
+	{
+		title: "Internal enterprise software development",
+		meta: "DRAFT",
+		summary: "Notes on building software for the business that pays you — different incentives, different constraints.",
+	},
+	{
+		title: "Robotic automation and orchestration systems",
+		meta: "DRAFT",
+		summary: "The lineage from physical robotics into software orchestration, and what each discipline borrows from the other.",
+	},
+	{
+		title: "Lessons from building Gnome Trader",
+		meta: "DRAFT",
+		summary: "Original goals, what shipped, what failed, and what an automated Solana trader taught me about operations.",
+	},
+];
+---
+
+<BaseLayout title="articles" section="ARTICLES">
+
+	<Section title="NAME">
+		<p>articles — technical writing.</p>
+	</Section>
+
+	<Section title="DESCRIPTION">
+		<p>
+			A small archive of long-form technical writing. The intent is a
+			short list of articles worth reading, not a stream of posts.
+		</p>
+	</Section>
+
+	<Section title="INDEX">
+		<div class="space-y-6">
+			{articles.map((a) => (
+				<Entry title={a.title} meta={a.meta}>
+					{a.summary}
+				</Entry>
+			))}
+		</div>
+	</Section>
+
+</BaseLayout>
