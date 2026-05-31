@@ -518,6 +518,103 @@ const systemDiagram = `   ┌──────────────┐      
 		<DefList items={stack} />
 	</Section>
 
+	<Section title="POSTMORTEM">
+		<p>
+			<span class="font-semibold">Summary.</span> Gnome
+			Trader was shut down in 2026, not because the
+			software stopped working, but because the platform
+			it depended on became unstable enough that the
+			system's reliability requirements could no longer
+			be met.
+		</p>
+
+		<p>
+			<span class="font-semibold">The dependency chain.</span>
+			Every layer of Gnome Trader ultimately depended on
+			the RuneScape game client, which is controlled by
+			Jagex. The bots ran inside the RuneMate botting
+			client, which is itself an arms-race opponent of
+			Jagex. When the dependency chain looks like that, a
+			hostile end state at the top cascades all the way
+			down. There is no version of "build it tighter"
+			that fixes a hostile platform.
+		</p>
+
+		<p>
+			<span class="font-semibold">Routine update churn.</span>
+			Even ignoring anti-bot measures, the weekly
+			RuneScape update cycle was already a structural
+			problem. Any breaking change in the game forced
+			RuneMate to ship a fix, and during the gap between
+			change and fix every bot in the swarm could behave
+			unpredictably. The platform had a safe-shutdown
+			system that stopped accepting new orders and drained
+			the in-flight ones, but activating it depended on
+			a human reading the RuneMate team's stability
+			reports. The right next step would have been to
+			scrape the RuneLite git for breaking changes and
+			trigger the shutdown automatically. I never got
+			there.
+		</p>
+
+		<p>
+			<span class="font-semibold">Jagex's anti-botting breakthrough.</span>
+			Through late 2025 and into 2026, Jagex appears to
+			have finally developed an effective anti-botting
+			layer after twenty years of trying. The public ban
+			statistics tell the story: real-world-trading bans
+			went from around 4,000 in December to 44,000 in
+			April (see
+			<a href="https://www.aggrgtr.com/player-support">aggrgtr.com/player-support</a>).
+			That is an 11x increase in a few months. The botting
+			ecosystem absorbed an enormous amount of damage,
+			and the cadence of game-side updates accelerated in
+			parallel.
+		</p>
+
+		<p>
+			<span class="font-semibold">Why the blast radius mattered.</span>
+			Botting in general can survive this kind of
+			instability because the cost of failure is bounded:
+			a banned account, lost XP, a wasted afternoon.
+			Gnome Trader's blast radius was different. A failure
+			mode could mean a customer paid SOL and lost it,
+			or a seller delivered gold and never got paid. The
+			system was designed around hard guarantees of
+			correctness exactly because of this asymmetry:
+			idempotent payments, atomic claims, automatic
+			refunds. But guarantees in software can only
+			protect against software failures. They cannot
+			protect against an upstream platform being
+			adversarial.
+		</p>
+
+		<p>
+			<span class="font-semibold">What I would do differently.</span>
+			The technical decision I would not change is the v4
+			architecture: the WebSocket bus, the atomic claim
+			model, the TTL self-healing. Those held up under
+			the entire operational window. The strategic
+			decision I would change is the dependency. Building
+			a platform on top of an adversarial third-party
+			game was the original sin, and no amount of
+			engineering rigour at lower layers can compensate
+			for it.
+		</p>
+
+		<p>
+			<span class="font-semibold">Future.</span> The
+			WebSocket and orchestration core is general. It is
+			not bound to RuneScape, RuneMate, or Solana in any
+			meaningful way. The same shape would work for any
+			system where a fleet of clients claims work
+			atomically and reports completion in real time. I
+			will revisit Gnome Trader if the OSRS botting
+			ecosystem stabilises, or if a similar problem
+			appears with a more cooperative platform underneath.
+		</p>
+	</Section>
+
 	<Section title="SCREENSHOTS">
 		<p>
 			A few views of the v4 interface, terminal-styled via
@@ -568,8 +665,6 @@ const systemDiagram = `   ┌──────────────┐      
 	<Section title="SEE ALSO">
 		<p>
 			<a href="/projects">/projects</a>
-			&nbsp; · &nbsp;
-			<a href="/postmortems/gnome-trader">postmortem</a>
 		</p>
 	</Section>
 

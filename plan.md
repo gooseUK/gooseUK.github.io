@@ -295,17 +295,27 @@ Each project should contain:
 * Lessons learned
 * Current status
 
-### Project / Postmortem split
+### Project page structure
 
-* `/projects/<name>` pages — **system synopsis**: technical run-down,
-  architecture, technologies, design decisions.
-* `/postmortems/<name>` pages — **operational story**: what
-  actually happened in production, successes, failures, lessons.
+Each `/projects/<name>` page holds everything for that project:
+the system synopsis (problem, architecture, decisions, stack,
+screenshots) and, where the project is finished, a postmortem
+section at the bottom covering the operational story, what
+worked, what failed, and the lessons.
 
-The SYSTEMS list on the home page always links to the system
-synopsis page (`/projects/<name>`), never directly to the
-postmortem. The postmortem is reached from inside the system
-page, or from the dedicated postmortems index.
+There is no separate postmortems URL space and no postmortems
+nav entry. Postmortems live as a bottom-of-page section inside
+the project they document.
+
+A postmortem section should contain:
+
+* Executive summary
+* Original thesis
+* What worked
+* What failed
+* Root cause analysis
+* Lessons learned
+* What I would do differently
 
 ### Pending project icons
 
@@ -377,44 +387,10 @@ Topics:
 
 Include screenshots and videos where available.
 
-This project should also have a dedicated postmortem.
-
----
-
-# Postmortems
-
-Purpose:
-
-Document lessons learned from completed or discontinued projects.
-
-Each postmortem should contain:
-
-* Executive summary
-* Original thesis
-* Architecture
-* What worked
-* What failed
-* Root cause analysis
-* Lessons learned
-* What I would do differently
-
----
-
-## Gnome Trader
-
-Dedicated postmortem.
-
-Topics:
-
-* Original goals
-* System architecture
-* Development process
-* Operational challenges
-* Market assumptions
-* Why the project failed
-* Lessons learned
-
-Include screenshots and embedded Wistia videos where available.
+This project should also have a postmortem section at the
+bottom of its page covering original goals, development
+process, operational challenges, market assumptions, why the
+project failed, and lessons learned.
 
 ---
 
