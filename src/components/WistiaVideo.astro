@@ -1,0 +1,26 @@
+---
+interface Props {
+	mediaId: string;
+	aspect?: number;
+}
+
+const { mediaId, aspect = 16 / 9 } = Astro.props;
+
+const html = `
+<style>
+	wistia-player[media-id='${mediaId}']:not(:defined) {
+		background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/${mediaId}/swatch');
+		display: block;
+		filter: blur(5px);
+		padding-top: 56.25%;
+	}
+</style>
+<wistia-player media-id="${mediaId}" aspect="${aspect}"></wistia-player>
+<script src="https://fast.wistia.com/player.js" async></script>
+<script src="https://fast.wistia.com/embed/${mediaId}.js" type="module" async></script>
+`;
+---
+
+<div class="wistia-embed w-full">
+	<Fragment set:html={html} />
+</div>

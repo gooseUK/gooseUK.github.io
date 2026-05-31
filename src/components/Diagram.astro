@@ -1,0 +1,26 @@
+---
+interface Props {
+	content: string;
+	caption?: string;
+}
+
+const { content, caption } = Astro.props;
+---
+
+<figure class="my-6">
+	<div class="border border-dashed border-[var(--color-rule-strong)] bg-[var(--color-paper-shade)]">
+		<pre class="diagram-pre overflow-x-auto p-3 sm:p-4 m-0 text-[12px] sm:text-[13px] leading-[1.2] font-mono text-ink">{content}</pre>
+	</div>
+	{caption && (
+		<figcaption class="text-[10.5px] uppercase tracking-[0.2em] text-ink-soft mt-2 text-center">
+			{caption}
+		</figcaption>
+	)}
+</figure>
+
+<style>
+	.diagram-pre {
+		tab-size: 4;
+		white-space: pre;
+	}
+</style>

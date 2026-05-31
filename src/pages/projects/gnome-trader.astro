@@ -1,6 +1,146 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Section from "../../components/Section.astro";
+import WistiaVideo from "../../components/WistiaVideo.astro";
+import Diagram from "../../components/Diagram.astro";
+import Figure from "../../components/Figure.astro";
+import DefList from "../../components/DefList.astro";
+
+const stack = [
+	{ term: "backend", value: "FastAPI (Python), asyncpg, async workflows" },
+	{ term: "frontend", value: "React 19, TypeScript, Vite, WebTUI CSS kit (terminal-styled UI)" },
+	{ term: "data", value: "PostgreSQL via SQLModel, Redis (atomic Lua, streams, TTL keys)" },
+	{ term: "real-time", value: "WebSockets" },
+	{ term: "blockchain", value: "Solana (solders / solana-py on server, @solana/web3.js on client), Phantom wallet, Helius transaction webhooks" },
+	{ term: "bots", value: "Java, RuneMate botting framework" },
+	{ term: "infra", value: "Google Cloud Run, Cloud Build, Pulumi, Google Secret Manager" },
+];
+
+const deliveryDiagram = `  BOT                           SERVER                          REDIS
+   │                               │                               │
+   │  ── poll ──────────────────►  │                               │
+   │                               │  ── find_and_claim_job ────►  │
+   │                               │  ◄─ claim created (TTL=20s) ─ │
+   │  ◄─ state {job: {...}} ─────  │                               │
+   │                               │                               │
+   │  [Trade gold in-game]         │                               │
+   │                               │                               │
+   │  ── items_update {Coins} ──►  │  ── HSET bot:items ────────►  │
+   │  ◄─ ack ────────────────────  │                               │
+   │                               │                               │
+   │  ── delivery_complete ─────►  │  ── Lua: verify claim ─────►  │
+   │                               │  ── HINCRBY job:delivered ─►  │
+   │                               │  ── DEL job:claimed ───────►  │
+   │  ◄─ ack {complete: true} ───  │                               │
+   │                               │                               │`;
+
+const selfHealDiagram = `  BOT A                         SERVER                          REDIS
+   │                               │                               │
+   │  ── poll ──────────────────►  │                               │
+   │  ◄─ state {job: 5000g} ─────  │  job:claimed = Bot A          │
+   │                               │                               │
+   │  [CRASH]                      │                               │
+   │     ✗                         │                               │
+   │                               │         [20s passes]          │
+   │                               │  ◄─ job:claimed expired ────  │
+   │                               │                               │
+  BOT B                            │                               │
+   │  ── poll ──────────────────►  │                               │
+   │                               │  ── find_and_claim_job ────►  │
+   │                               │     available = 5000 - 0      │
+   │                               │  ── create job:claimed ────►  │
+   │  ◄─ state {job: 5000g} ─────  │     (Bot B now owns claim)    │
+   │                               │                               │
+   │  [Bot B continues delivery]   │                               │
+   │                               │                               │`;
+
+const reconnectDiagram = `  BOT                           SERVER                          REDIS
+   │                               │                               │
+   │  [DISCONNECT]                 │                               │
+   │                               │                               │
+   │                               │         [10s passes]          │
+   │                               │  ◄─ bot:items expired ──────  │
+   │                               │  ◄─ bot:session expired ────  │
+   │                               │                               │
+   │                               │         [20s passes]          │
+   │                               │  ◄─ job:claimed expired ────  │
+   │                               │     (claim auto-released)     │
+   │                               │                               │
+   │  [RECONNECT]                  │                               │
+   │  ── connect ───────────────►  │  ── create session ────────►  │
+   │  ◄─ init_ok ────────────────  │                               │
+   │                               │                               │
+   │  ── items_update {Coins} ──►  │  ── HSET bot:items ────────►  │
+   │  ◄─ ack ────────────────────  │     (inventory restored)      │
+   │                               │                               │
+   │  ── poll ──────────────────►  │  ── find_and_claim_job ────►  │
+   │                               │     (can claim again)         │
+   │                               │                               │`;
+
+const lostAckDiagram = `  BOT                           SERVER                          REDIS
+   │                               │                               │
+   │  ── delivery_complete ─────►  │  ── verify & release claim ►  │
+   │  ◄─ ack ─────────────── ✗     │  (claim deleted)              │
+   │     (lost)                    │                               │
+   │                               │                               │
+   │  [wait 5 seconds]             │                               │
+   │                               │                               │
+   │  ── delivery_complete ─────►  │  ── verify claim ──────────►  │
+   │                               │  ◄─ claim doesn't exist ────  │
+   │  ◄─ error: not_your_claim ──  │                               │
+   │                               │                               │
+   │  [Bot knows trade succeeded   │                               │
+   │   in-game, interprets as OK]  │                               │
+   │                               │                               │
+   │  ── poll ──────────────────►  │  (fresh state, job gone)      │
+   │                               │                               │`;
+
+const partialDeliveryDiagram = `  BOT A (3000g)                 SERVER                          REDIS
+   │                               │                               │
+   │  ── poll ──────────────────►  │  job:items = 5000             │
+   │                               │  job:delivered = 0            │
+   │                               │  available = 5000             │
+   │                               │  claim = min(3000, 5000)      │
+   │  ◄─ state {job: 3000g} ─────  │  job:claimed = {Bot A, 3000}  │
+   │                               │                               │
+   │  [Deliver 3000g]              │                               │
+   │  ── delivery_complete ─────►  │  job:delivered = 3000         │
+   │  ◄─ ack {complete: false} ──  │  (partial, 2000 remaining)    │
+   │                               │                               │
+  BOT B (4000g)                    │                               │
+   │  ── poll ──────────────────►  │  available = 5000 - 3000      │
+   │                               │  claim = min(4000, 2000)      │
+   │  ◄─ state {job: 2000g} ─────  │  job:claimed = {Bot B, 2000}  │
+   │                               │                               │
+   │  [Deliver 2000g]              │                               │
+   │  ── delivery_complete ─────►  │  job:delivered = 5000         │
+   │  ◄─ ack {complete: true} ───  │  ORDER COMPLETE → cleanup     │
+   │                               │                               │`;
+
+const systemDiagram = `   ┌──────────────┐                         ┌──────────────┐
+   │   Browser    │                         │   Main API   │
+   │  (React UI)  │───────── http ─────────▶│   (FastAPI)  │
+   └──────────────┘                         └──────────────┘
+
+   ┌──────────────┐                         ┌──────────────┐
+   │   Browser    │                         │  Client WS   │
+   │  (React UI)  │◀──────── ws push ───────│              │
+   └──────────────┘                         └──────────────┘
+
+   ┌──────────────┐                         ┌──────────────┐
+   │  Java Bots   │                         │    Bot WS    │
+   │  (In-Game)   │◀────── websocket ──────▶│              │
+   └──────────────┘                         └──────────────┘
+
+   ┌──────────────┐                         ┌──────────────┐
+   │   Helius     │                         │   Orch API   │
+   │  (Webhooks)  │──────── webhook ───────▶│              │
+   └──────────────┘                         └──────────────┘
+
+   ┌─ shared substrate ──────────────────────────────────────┐
+   │  Redis     · in-flight state · jobs · claims · queues   │
+   │  Postgres  · durable state · users · orders · payments  │
+   └─────────────────────────────────────────────────────────┘`;
 ---
 
 <BaseLayout title="gnome-trader" section="PROJECT">
@@ -9,12 +149,428 @@ import Section from "../../components/Section.astro";
 		<p><span class="font-semibold">gnome-trader</span></p>
 	</Section>
 
-	<Section title="STATUS">
-		<p class="text-ink-soft">Page in progress. System synopsis pending.</p>
+	<Section title="PROBLEM STATEMENT">
+		<p>
+			The RuneScape gold market runs on human latency. Buyer
+			and seller meet in-game, do the trade by hand, and
+			settle payment off-platform. Gnome Trader closes that
+			loop in software: payment in SOL, delivery by an
+			always-on swarm of bots.
+		</p>
+
+		<Figure caption="fig. 1 · gnome-trader · end-to-end purchase and delivery">
+			<WistiaVideo mediaId="vlio036vpu" />
+		</Figure>
+
+		<p>
+			A purchase from the shop end of the system: the customer
+			picks a seller and an amount, pays from their Phantom
+			wallet, and a bot in the seller's swarm delivers the
+			gold in-game within seconds of on-chain confirmation.
+			The same flow would normally take a person twenty
+			minutes to a day, depending on when the seller wakes
+			up, and fails routinely when the payment is reversed,
+			the seller cancels, or the buyer never shows up.
+		</p>
+	</Section>
+
+	<Section title="ARCHITECTURE">
+		<p>
+			Four backend services around a Redis state hub and a
+			Postgres durable store, plus a fleet of Java bots that
+			connect over WebSocket and a React/TypeScript client
+			served by the main API.
+		</p>
+
+		<Diagram
+			content={systemDiagram}
+			caption="fig. 2 · system architecture"
+		/>
+
+		<p>
+			<span class="font-semibold">Main API</span> is the
+			user-facing FastAPI. It handles Solana-signature
+			authentication, orders, seller and swarm configuration,
+			and admin operations. It owns the writes to Postgres
+			and creates the initial gold reservations in Redis.
+		</p>
+		<p>
+			<span class="font-semibold">Orch API</span> is the
+			coordinator. It receives Helius webhooks confirming
+			on-chain Solana payments, creates the Redis job keys
+			that the delivery side reads, and runs the cron jobs
+			that pay sellers out, refresh the SOL price, and drive
+			a three-stage graceful shutdown. A background loop
+			reaps orphaned claims when bots crash.
+		</p>
+		<p>
+			<span class="font-semibold">Bot WS</span> is the
+			real-time hub for the Java bots. Each bot opens a
+			single WebSocket on startup and that connection
+			carries everything in both directions. The bot
+			heartbeats and polls every five seconds, sends a
+			fresh inventory whenever its contents change, reports
+			successful and failed deliveries, and emits grid
+			positions and terminal log lines that show up live in
+			the customer's browser as the trade unfolds. The
+			server pushes back the bot's swarm configuration on
+			connect, its directive on every poll (active, paused,
+			stopped, or shutdown), and any job the bot should
+			pick up. Jobs are claimed atomically through Lua
+			scripts in Redis, with a twenty-second TTL so a
+			crashed bot releases its work automatically and
+			another bot can take it over.
+		</p>
+		<p>
+			<span class="font-semibold">Client WS</span> is a thin
+			WebSocket gateway that forwards messages from a Redis
+			stream out to the customer's browser, so the customer
+			sees the bot moving on a grid and a live terminal log
+			as the delivery happens.
+		</p>
+		<p>
+			The substrate band at the bottom of the diagram is
+			shared by every service. <span class="font-semibold">Redis</span>
+			is the source of truth for in-flight state: which jobs
+			exist, which bots are alive, who is currently claiming
+			what. <span class="font-semibold">Postgres</span> is
+			the durable store for users, orders, payments, payouts,
+			and seller stats. Every box in the row above reads from
+			and writes to both.
+		</p>
+	</Section>
+
+	<Section title="LIFECYCLE">
+		<p>
+			An order moves through four phases: purchase,
+			payment confirmation, delivery, and payout. The
+			first two and the last are mostly one-step
+			transitions driven by user input, webhooks, and
+			cron. The interesting phase is delivery, where
+			multiple actors run concurrently and the system has
+			to handle crashes, lost messages, and multi-bot
+			coordination.
+		</p>
+
+		<p>
+			<span class="font-semibold">Purchase.</span> The
+			customer picks a seller and an amount on the shop.
+			Main API reserves the gold in Redis with a TTL,
+			creates Order and Payment records in Postgres, and
+			returns a Solana payment instruction. The customer's
+			Phantom wallet prompts them to sign.
+		</p>
+
+		<p>
+			<span class="font-semibold">Payment confirmation.</span>
+			Once the transaction is on-chain, Helius posts a
+			webhook to Orch API. Orch verifies the amount
+			against the Payment record (within a tolerance
+			window, idempotent on the on-chain signature),
+			advances the Order to PENDING_DELIVERY, and creates
+			the Redis job keys that the delivery side reads.
+		</p>
+
+		<p>
+			<span class="font-semibold">Delivery.</span> From
+			here a bot in the seller's swarm picks up the work.
+			The diagrams below come from the bot-ws-v2 docs and
+			show the protocol as it actually runs.
+		</p>
+
+		<Diagram
+			content={deliveryDiagram}
+			caption="fig. 3 · successful delivery"
+		/>
+
+		<p>
+			When a bot crashes mid-delivery, the system recovers
+			itself through Redis TTLs. The crashed bot's claim
+			expires after twenty seconds and the work returns
+			to the queue for another bot to take.
+		</p>
+
+		<Diagram
+			content={selfHealDiagram}
+			caption="fig. 4 · self-healing on bot crash"
+		/>
+
+		<p>
+			When a single order is too large for one bot's
+			inventory, the order is split across multiple bots.
+			Each bot claims as much as it can carry, and the
+			next poll from another bot picks up the remainder.
+		</p>
+
+		<Diagram
+			content={partialDeliveryDiagram}
+			caption="fig. 5 · partial delivery, multi-bot"
+		/>
+
+		<p>
+			<span class="font-semibold">Payout.</span> When all
+			the gold is delivered the Order is marked COMPLETE
+			and a <code>payout:&#123;order_id&#125;</code> key
+			is set in Redis. A cron in Orch API picks it up
+			once per minute, sends ninety-five percent of the
+			SOL to the seller's wallet, and records the result
+			in the Payout table. Three failed attempts marks
+			the payout FAILED.
+		</p>
+	</Section>
+
+	<Section title="EVOLUTION">
+		<p>
+			Gnome Trader went through four versions over two
+			years. Each one was a full rebuild rather than a
+			refactor, because each version taught me enough
+			about what did not work that the next was easier
+			to start over than to retrofit.
+		</p>
+
+		<p>
+			<span class="font-semibold">v1 (Jan 2024).</span>
+			Single bot, simple web API, long polling. Built to
+			prove that a Solana payment could
+			trigger an automated in-game delivery without
+			anyone in the loop. It made the first sale and the
+			concept was viable.
+		</p>
+
+		<Figure caption="fig. 6 · v1 demo">
+			<WistiaVideo mediaId="wwk8tsar0x" />
+		</Figure>
+
+		<p>
+			<span class="font-semibold">v2.</span> The first
+			multi-tenant version. Other sellers could install
+			my bot through the RuneMate client and connect
+			their own swarm without exposing their RuneScape
+			credentials. Buyers got a real UI with a status
+			terminal, an order history, and transaction details.
+		</p>
+
+		<Figure caption="fig. 7 · v2 demo">
+			<WistiaVideo mediaId="1t90e96cnp" />
+		</Figure>
+
+		<Figure caption="fig. 8 · v2 interface">
+			<img
+				src="/images/gnome_trader_v2.png"
+				alt="Gnome Trader v2 interface"
+				class="w-full h-auto"
+			/>
+		</Figure>
+
+		<p>
+			<span class="font-semibold">v3.</span> A full
+			rebuild around Redis and WebSockets, and the
+			version that introduced per-seller shop pages so
+			each seller had their own storefront. Long polling
+			could not keep up with the order volume the
+			marketplace was generating. Most of the system
+			became event-driven, but delivery processing still
+			ran through a Celery worker. To get atomic payment
+			handling out of a non-atomic system I built a
+			bloated workaround that worked but only processed
+			one order at a time. When I finished v3 I
+			immediately knew it needed to go in the bin.
+		</p>
+
+		<Figure caption="fig. 9 · v3 interface">
+			<img
+				src="/images/gnome_trader_v3.jpeg"
+				alt="Gnome Trader v3 interface"
+				class="w-full h-auto"
+			/>
+		</Figure>
+
+		<p>
+			What changed between v3 and v4 was a realisation
+			more than a feature. Halfway through v3 I knew I
+			was in voodoo territory. There had to be a simpler
+			way, because every other system that handles
+			concurrent state must have the same problem. That
+			led me to read about Redis atomics and to the
+			discovery that Redis is far more than key-value
+			storage. Atomic Lua scripts and TTL-driven state
+			turned the workarounds into a few lines of correct,
+			race-free code.
+		</p>
+
+		<p>
+			<span class="font-semibold">v4 (Jan 2026).</span>
+			The version this page documents. Heavier reliance
+			on Redis still, with more state moved into TTL
+			keys and the cleanup logic that had grown around
+			v3 simply gone. Redis streams replaced Google
+			Pub/Sub for in-process event handling. The order,
+			payment, and delivery flows were refactored around
+			atomic Lua scripts. The codebase became dramatically
+			leaner without losing any functionality. It was
+			striking how often a smarter design turned out to
+			be the smaller one.
+		</p>
+	</Section>
+
+	<Section title="ENGINEERING DECISIONS">
+		<p>
+			The crux of Gnome Trader was the bot WebSocket. v4
+			went through about five refactors of the bot WS
+			alone, looking for the right compromise between push
+			and pull, and the right split of authority between
+			the bot and the server. Most of the decisions below
+			are downstream of those refactors.
+		</p>
+
+		<p>
+			<span class="font-semibold">WebSocket transport with bot-driven polling.</span>
+			The final design uses a long-lived WebSocket but the
+			bot polls over it every five seconds, and the server
+			reads from Redis to reply. Plain HTTP long-polling
+			was tried and could not deliver the snappy
+			responsiveness needed under load. A fully
+			server-pushed WebSocket meant the server had to
+			manage every bot's state machine, which broke down
+			the moment the connection died, and WebSockets die
+			all the time. Polling over a warm WebSocket combines
+			the millisecond delivery latency of a socket with the
+			simpler state model of a pull-based client. The
+			server stays stateless between polls.
+		</p>
+
+		<p>
+			<span class="font-semibold">Atomic claim creation via Lua.</span>
+			Multiple bots polling simultaneously can race for the
+			same job. Lua scripts run atomically inside Redis, so
+			the claim operation (read available, write claim,
+			return result) is one indivisible step. No
+			double-claims, no missed claims, no application-level
+			locks.
+		</p>
+
+		<p>
+			<span class="font-semibold">Self-healing through TTLs.</span>
+			Every piece of bot state has a TTL. Heartbeat,
+			session, and items expire after ten seconds. Claims
+			expire after twenty. A bot that crashes or
+			disconnects simply lets its state expire, and the
+			work falls back into the pool for another bot. There
+			is no "is this bot still alive?" check, no
+			dead-letter queue, no explicit cleanup path. Failure
+			becomes a no-op.
+		</p>
+
+		<Diagram
+			content={reconnectDiagram}
+			caption="fig. 10 · reconnect after disconnect"
+		/>
+
+		<p>
+			<span class="font-semibold">Idempotency by state, not by message ID.</span>
+			When a delivery_complete ACK is lost and the bot
+			retries, the server has already released the claim,
+			so the duplicate returns not_your_claim. The bot
+			reads that as success because it knows the in-game
+			trade happened. This works because of an authority
+			split: the bot owns in-game truth (it executed the
+			trade), the server owns the order ledger. They never
+			overrule each other. No msg_id dedup table, no
+			replay buffers, no idempotency keys.
+		</p>
+
+		<Diagram
+			content={lostAckDiagram}
+			caption="fig. 11 · retry after lost ACK"
+		/>
+
+		<p>
+			<span class="font-semibold">Partial deliveries via min(inventory, remaining).</span>
+			A single order can be larger than one bot's coin
+			inventory. Instead of failing, the claim is the
+			smaller of what this bot can carry and what the
+			order still needs. Big orders naturally span multiple
+			bots without coordination.
+		</p>
+
+		<p>
+			<span class="font-semibold">Webhook idempotency keyed on Solana signature.</span>
+			Helius can post the same transaction more than once.
+			Orch stores the on-chain signature on the Payment
+			record and ignores duplicates. Amount matching uses
+			a tolerance window (the larger of one percent of
+			expected or 500,000 lamports, capped at 10 million)
+			to absorb fee rounding.
+		</p>
+
+		<p>
+			<span class="font-semibold">Background reaper for orphaned claims.</span>
+			The TTL system handles most failures. The reaper
+			handles what slips through: a loop in Orch scans
+			Redis every couple of seconds, marks orders FAILED
+			when their job keys expire mid-delivery, and
+			restores any claimed items back to the job before
+			deleting the orphan claim.
+		</p>
+	</Section>
+
+	<Section title="STACK">
+		<DefList items={stack} />
+	</Section>
+
+	<Section title="SCREENSHOTS">
+		<p>
+			A few views of the v4 interface, terminal-styled via
+			the WebTUI CSS kit.
+		</p>
+
+		<Figure caption="fig. 12 · landing page">
+			<img
+				src="/images/front_page.png"
+				alt="Gnome Trader landing page with live sales feed"
+				class="w-full h-auto"
+			/>
+		</Figure>
+
+		<Figure caption="fig. 13 · orders dashboard">
+			<img
+				src="/images/orders_view.png"
+				alt="Admin orders view with payment, payout, and order log per order"
+				class="w-full h-auto"
+			/>
+		</Figure>
+
+		<Figure caption="fig. 14 · swarm list">
+			<img
+				src="/images/swarms_view.png"
+				alt="Swarm configuration list with directives, statuses, and quantities"
+				class="w-full h-auto"
+			/>
+		</Figure>
+
+		<Figure caption="fig. 15 · edit swarm">
+			<img
+				src="/images/swarm_config.png"
+				alt="Edit swarm dialog with name, price, min/max, level cap, and location"
+				class="w-full h-auto"
+			/>
+		</Figure>
+
+		<Figure caption="fig. 16 · edit location">
+			<img
+				src="/images/location_config.png"
+				alt="Edit location dialog with world, name, and trade area coordinates"
+				class="w-full h-auto"
+			/>
+		</Figure>
 	</Section>
 
 	<Section title="SEE ALSO">
-		<p><a href="/projects">/projects</a></p>
+		<p>
+			<a href="/projects">/projects</a>
+			&nbsp; · &nbsp;
+			<a href="/postmortems/gnome-trader">postmortem</a>
+		</p>
 	</Section>
 
 </BaseLayout>
