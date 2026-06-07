@@ -9,23 +9,11 @@ const experience = [
 		org: "SECOM Plc",
 		period: "Sep 2024 — Present",
 		bullets: [
-			"Technical lead for architecting and delivering enterprise internal systems, replacing fragmented spreadsheet-driven business processes.",
-			"Design and build scalable backend services to ingest, transform, and synchronise operational data across on-premises and third-party systems.",
-			"Built a centralised platform automating core business workflows and mission-critical document generation across the organisation.",
-			"Own end-to-end system architecture, deployment strategy, and operational reliability across new and legacy-integrated services.",
-			"Lead phased modernisation of legacy platforms into service-based systems while ensuring uninterrupted business continuity.",
-		],
-	},
-	{
-		role: "Founder / Software Engineer",
-		org: "Gnome Trader",
-		period: "Mar 2024 — Present",
-		bullets: [
-			"Designed and built an automated crypto-based settlement and delivery system integrating blockchain transactions with real-time backend services.",
-			"Implemented Python services using FastAPI, WebSockets, Redis, and PostgreSQL to coordinate event-driven workflows and stateful task execution.",
-			"Built reconciliation logic to verify on-chain Solana transactions before triggering downstream fulfilment and confirmation flows.",
-			"Reduced end-to-end delivery latency from approximately one hour of manual processing to sub-20-second automated execution.",
-			"Engineered the system to handle concurrent orders, partial failures, and retry-safe processing across distributed components.",
+			"Technical lead building a new business platform for both internal and customer use with Python, FastAPI, React, TypeScript, and Redis.",
+			"Designed and built event-driven backend services that synchronise operational data across on-premises and third-party systems.",
+			"Migrating legacy MySQL platforms onto a unified service-based architecture without downtime.",
+			"Replacing manual workflows and document generation across the organisation.",
+			"Own architecture, CI/CD, and operational reliability across all services on Google Cloud.",
 		],
 	},
 	{
@@ -33,18 +21,47 @@ const experience = [
 		org: "British Steel",
 		period: "Jan 2024 — Sep 2024",
 		bullets: [
-			"Worked on operational systems supporting logistics, asset tracking, and financial reporting across large-scale industrial operations.",
-			"Developed and maintained data pipelines combining GPS telemetry, on-site sensor data, and legacy systems to support real-time decision-making.",
-			"Interfaced with and maintained legacy Fortran-based systems critical to ongoing production and reporting workflows.",
-			"Built and validated datasets used for cost tracking, efficiency analysis, and operational optimisation.",
+			"Designed a molten steel tracking system to capture material used and wasted across the plant.",
+			"Built data pipelines combining Digital Matter GPS telemetry, on-site sensor feeds, and legacy systems to support real-time logistics and production decisions.",
+			"Interfaced with legacy Fortran and COBOL systems running critical production and financial reporting workflows.",
+			"Built datasets used by operations for cost tracking, efficiency analysis, and production optimisation.",
 		],
 	},
 	{
-		role: "Offshore Wind Turbine Engineer",
+		role: "Software / Electronics Engineer",
+		org: "Lampada",
+		period: "Jun 2022 — Jan 2024",
+		bullets: [
+			"Built a GPS-based campus navigation app for the University of Hull, with pathfinding around campus buildings and walkways.",
+			"Designed and prototyped custom PCBs for client projects, from schematic capture through layout to manufacture.",
+		],
+	},
+	{
+		role: "Hydraulics Technician",
+		org: "Siemens Gamesa",
+		period: "May 2018 — Sep 2019",
+		bullets: [
+			"Built, calibrated, and serviced high-pressure hydraulic systems and devices used across the wind turbine industry.",
+		],
+	},
+	{
+		role: "Offshore Wind Turbine Technician",
 		org: "E.ON Energy",
 		period: "Sep 2015 — May 2018",
 		bullets: [
-			"Hands-on maintenance role on offshore wind turbines in a safety-critical industrial environment, prior to transitioning into software engineering.",
+			"Hands-on mechanical, electrical, and hydraulic maintenance of offshore wind turbines, with direct responsibility for turbine availability and generation uptime.",
+			"Fault diagnosis and resolution using SCADA telemetry and on-site instrumentation across power generation, control, and safety systems.",
+			"Worked under strict safety, working-at-height, and offshore-access certifications (GWO standards) in a remote, weather-constrained operational environment.",
+		],
+	},
+	{
+		role: "Software Engineer",
+		org: "Gnome Trader (Personal Project)",
+		period: "Mar 2024 — Jan 2026",
+		bullets: [
+			"Reduced end-to-end delivery latency from approximately one hour of manual processing to sub-20-second automated execution.",
+			"Designed and built a distributed Solana payment and delivery platform. Python, FastAPI, WebSockets, Redis, PostgreSQL, atomic Lua-scripted Redis claims with TTL self-healing.",
+			"Verified on-chain Solana transactions before triggering downstream fulfilment, with idempotent payment processing and tolerance-window amount matching.",
 		],
 	},
 ];
@@ -125,7 +142,12 @@ const skills = [
 						<span class="text-xs text-ink-soft uppercase tracking-widest">{e.period}</span>
 					</div>
 					<ul class="mt-2 space-y-1 text-[14.5px] text-ink-soft leading-relaxed list-none">
-						{e.bullets.map((b) => <li>· {b}</li>)}
+						{e.bullets.map((b) => (
+							<li class="flex gap-2">
+								<span aria-hidden="true" class="shrink-0">·</span>
+								<span>{b}</span>
+							</li>
+						))}
 					</ul>
 				</div>
 			))}
