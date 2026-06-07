@@ -1,6 +1,91 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Section from "../../components/Section.astro";
+import WistiaVideo from "../../components/WistiaVideo.astro";
+import Diagram from "../../components/Diagram.astro";
+import Figure from "../../components/Figure.astro";
+import DefList from "../../components/DefList.astro";
+
+const systemDiagram = `   ┌──────────────┐                         ┌──────────────┐
+   │   Browser    │                         │   Web API    │
+   │ (React Flow) │───────── http ─────────▶│  (FastAPI)   │
+   └──────────────┘                         └──────────────┘
+
+   ┌──────────────┐                         ┌──────────────┐
+   │   Java Bot   │                         │   Web API    │
+   │  (RuneMate)  │─── http (pipeline) ────▶│              │
+   └──────────────┘                         └──────────────┘
+
+   ┌──────────────┐                         ┌──────────────┐
+   │   Java Bot   │                         │ Trace Relay  │
+   │ GraphWalker  │───── http (trace) ─────▶│ (Cloud Run)  │
+   └──────────────┘                         └──────────────┘
+
+   ┌──────────────┐                         ┌──────────────┐
+   │   Browser    │                         │ Trace Relay  │
+   │ (React Flow) │◀──── sse push ──────────│ (Cloud Run)  │
+   └──────────────┘                         └──────────────┘
+
+   ┌─ shared substrate ──────────────────────────────────────┐
+   │  Postgres   · pipelines · nodes · users · marketplace   │
+   │  Redis      · sessions · caching                        │
+   └─────────────────────────────────────────────────────────┘`;
+
+const graphWalkerCode = `/**
+ * Decision tree walker for pipeline execution.
+ *
+ * Each step() call "drops a marble from the top" - traversing from
+ * the entry node through control flow nodes until reaching an action
+ * node, then executing that action.
+ *
+ * Key behaviors:
+ * - Control flow nodes (condition) are evaluated against current game state
+ * - Action nodes (module, primitive) are where execution "lands"
+ * - RUNNING actions are ticked on subsequent calls until complete
+ * - Fresh traversal from entry on each iteration (unless action is RUNNING)
+ */
+public class GraphWalker {
+
+    public boolean step() {
+        // Check execution limits
+        if (!checkLimits()) {
+            return false;
+        }
+
+        // Get current game state with state provider for variable access
+        Map<String, Object> gameState = stateProvider.getState();
+        gameState.put("__stateProvider", stateProvider);
+
+        // If we have an active running action, tick it
+        if (activeActionNodeId != null && activeActionExecutor != null) {
+            return tickActiveAction(gameState);
+        }
+
+        // If we have a pending jump from invisible edge, resume from target
+        if (pendingJumpNodeId != null) {
+            String jumpTarget = pendingJumpNodeId;
+            pendingJumpNodeId = null;
+            PipelineNode targetNode = graph.getNode(jumpTarget);
+            if (targetNode != null) {
+                return traverseFromNode(targetNode, gameState);
+            }
+        }
+
+        // Fresh traversal from entry - clear step-scoped data from previous step
+        stepDataOutputs.clear();
+        return traverseAndExecute(gameState);
+    }
+}`;
+
+const stack = [
+	{ term: "backend", value: "FastAPI, Python, SQLModel, PostgreSQL, Redis" },
+	{ term: "frontend", value: "React 19, TypeScript, Vite, React Flow (@xyflow/react), Radix UI, Tailwind" },
+	{ term: "bot", value: "Java, RuneMate botting framework, Lombok, Log4j2" },
+	{ term: "conditions", value: "JSON Logic" },
+	{ term: "auth", value: "Phantom wallet signatures + Redis sessions" },
+	{ term: "trace", value: "FastAPI on Cloud Run, SSE via sse-starlette" },
+	{ term: "infra", value: "Google App Engine Standard (Web API), Cloud Run (Trace Relay)" },
+];
 ---
 
 <BaseLayout title="gnome-aio" section="PROJECT">
@@ -9,12 +94,314 @@ import Section from "../../components/Section.astro";
 		<p><span class="font-semibold">gnome-aio</span></p>
 	</Section>
 
-	<Section title="STATUS">
-		<p class="text-ink-soft">Page in progress. System synopsis pending.</p>
+	<Section title="PROBLEM STATEMENT">
+		<p>
+			Writing a RuneScape bot has always meant writing
+			code. Each new behaviour is another Java file,
+			another deploy, another build cycle. The skill
+			ceiling for getting a bot to do anything useful is
+			the skill ceiling of Java engineering, and the
+			time-to-iterate on a new strategy is measured in
+			hours.
+		</p>
+
+		<p>
+			GnomeAIO turns bot logic into a graph that a
+			non-programmer can compose visually. Players drag
+			nodes onto a canvas, wire them together to describe
+			control flow and data flow, and a Java bot walks the
+			graph at runtime. The same bot binary executes any
+			pipeline. No recompile, no deploy.
+		</p>
+
+		<Figure caption="fig. 1 · navigating a pipeline of node trees">
+			<WistiaVideo mediaId="whsgv7m5vv" />
+		</Figure>
+
+		<p>
+			The same scaffold supports nested templates
+			(composites), data channels that pipe values across
+			the graph, and a live trace that pulses the
+			currently-executing node in the user's browser as
+			the bot moves through the in-game world.
+		</p>
+
+		<p>
+			The longer-term intent was to plug GnomeAIO bots
+			into Gnome Trader. A bot swarm that needs gold to
+			function (think a bot training combat that needs to
+			keep buying food) could place orders against the
+			Gnome Trader marketplace automatically, closing
+			another loop between the two systems.
+		</p>
+	</Section>
+
+	<Section title="ARCHITECTURE">
+		<p>
+			Two services and a relay, plus a Java bot and a
+			React client.
+		</p>
+
+		<Diagram
+			content={systemDiagram}
+			caption="fig. 2 · system architecture"
+		/>
+
+		<p>
+			<span class="font-semibold">Web API</span> is a
+			FastAPI service on App Engine Standard. It owns
+			pipelines, the node catalogue, marketplace listings,
+			and authentication (Phantom wallet signatures with
+			Redis-backed sessions, same model as Gnome Trader).
+		</p>
+		<p>
+			<span class="font-semibold">Java bot</span> runs
+			under RuneMate. On launch it fetches the active
+			pipeline as a stripped <code>graph_bot</code>
+			payload, then runs the GraphWalker against live
+			game state every tick.
+		</p>
+		<p>
+			<span class="font-semibold">Trace Relay</span> is a
+			small FastAPI service on Cloud Run that holds open
+			SSE connections. The bot posts the current node id
+			over HTTP, the relay fans it out to any browser
+			subscribed to that bot's stream. Decoupling the
+			relay from the main API keeps a noisy bot from
+			affecting the editor's responsiveness.
+		</p>
+		<p>
+			<span class="font-semibold">Client</span> is React
+			19 with React Flow and Radix UI. The same canvas
+			serves both the editor and the live trace overlay,
+			so the player sees their own graph pulse as the bot
+			moves through it.
+		</p>
+		<p>
+			Substrate: Postgres for durable state (pipelines,
+			nodes, users, marketplace), Redis for sessions and
+			caching.
+		</p>
+	</Section>
+
+	<Section title="LIFECYCLE">
+		<p>How a pipeline runs:</p>
+
+		<ol class="list-decimal pl-6 space-y-1.5">
+			<li>Player composes a graph in the React Flow editor.</li>
+			<li>On save, the API stores two forms: <code>graph_full</code> for the UI, and <code>graph_bot</code> stripped of UI-only metadata for the bot.</li>
+			<li>Bot launches in RuneMate, authenticates, and fetches <code>graph_bot</code> for the current pipeline.</li>
+			<li>The GraphWalker is called on every game tick.</li>
+			<li>Each call "drops a marble from the top": the walker traverses from the entry node through control-flow nodes (conditions, loops, data evaluators) until landing on an action node.</li>
+			<li>The action node executes against the current game state.</li>
+			<li>While an action is RUNNING (for example, walking to a target tile), subsequent ticks tick the same action.</li>
+			<li>When the action returns EXECUTED, the walker either follows the action's output handle or re-traverses from the entry node on the next tick.</li>
+			<li>Throughout, the walker posts the current node id to the trace relay, which fans it out via SSE to any browser watching this bot. The frontend pulses the matching node green.</li>
+		</ol>
+
+		<Figure caption="fig. 3 · live trace · nodes pulse as the bot executes">
+			<WistiaVideo mediaId="qmlztog7ju" />
+		</Figure>
+
+		<p>
+			The marble-drop model is deliberate. Game state can
+			change between ticks (a tile becomes blocked, an
+			interface closes itself, a player walks into view),
+			so any decision the walker made one tick may be
+			invalid the next. Re-evaluating from the entry every
+			time is the simplest model that always reflects the
+			current state.
+		</p>
+
+		<Diagram
+			content={graphWalkerCode}
+			caption="fig. 4 · GraphWalker.java (excerpt)"
+		/>
+	</Section>
+
+	<Section title="ENGINEERING DECISIONS">
+		<p>
+			<span class="font-semibold">Graph as state, bot as walker.</span>
+			The bot has no behaviour of its own. It is a graph
+			interpreter. New behaviour is a new graph, not a
+			new binary, not a new deploy.
+		</p>
+
+		<p>
+			<span class="font-semibold">Two-layer graph (control + data).</span>
+			Control edges drive execution flow. Data edges
+			carry typed values. Named "data channels" let a
+			value produced in one corner of the graph be read in
+			another without explicit wiring across half a
+			canvas.
+		</p>
+
+		<p>
+			<span class="font-semibold">Composites flatten at save time.</span>
+			Sub-graphs the player composes once and reuses are
+			expanded into their final form on save, with
+			composite node ids prefixed to disambiguate. The
+			walker never sees composites at runtime, just the
+			flattened graph. Avoids a recursive walker.
+		</p>
+
+		<p>
+			<span class="font-semibold">Three data scopes.</span>
+			Constant data outputs are pre-populated at init and
+			immutable. Step-scoped data is cleared at the start
+			of every step. Data channels persist across steps
+			until overwritten. Three scopes covered every real
+			case without needing a general variable store.
+		</p>
+
+		<p>
+			<span class="font-semibold">JSON Logic for conditions.</span>
+			Instead of inventing an expression language,
+			conditions are JSON Logic. A condition like
+			<code>&#123;"&lt;": [&#123;"var": "stats.mining"&#125;, 15]&#125;</code>
+			reads as "mining level under 15". Composable,
+			parseable in both Python and Java, no parser to
+			maintain.
+		</p>
+
+		<p>
+			<span class="font-semibold"><code>category:name@version</code> node identity.</span>
+			Every node carries its category, name, and version.
+			When a node's implementation changes, old pipelines
+			can keep running against the old version, or be
+			migrated explicitly.
+		</p>
+
+		<p>
+			<span class="font-semibold">Safety limits everywhere.</span>
+			Max traversal depth, max actions per step, action
+			timeout, max total executions, max runtime. A graph
+			editor encourages loops, and the bot will run them.
+			The walker refuses to.
+		</p>
+
+		<p>
+			<span class="font-semibold">Trace as a separate Cloud Run service.</span>
+			The trace relay is a tiny stateless service. Bots
+			post node updates, browsers subscribe via SSE. The
+			editor and the trace can scale independently, and a
+			busy bot fleet does not slow down the canvas.
+		</p>
+	</Section>
+
+	<Section title="STACK">
+		<DefList items={stack} />
+	</Section>
+
+	<Section title="POSTMORTEM">
+		<p>
+			<span class="font-semibold">Summary.</span> GnomeAIO
+			was discontinued because the visual programming model
+			failed at its goal. The intent was to let
+			non-programmers compose bot behaviour by wiring
+			nodes. The reality was that composing a useful
+			pipeline required programmer-level thinking, which
+			made the canvas a worse environment for the people
+			who could use it and an impossible one for the people
+			who could not. Multi-bot orchestration was the part
+			of the system that genuinely worked, but it was not
+			enough to justify the rest, and it did not carry
+			over into the next project either.
+		</p>
+
+		<p>
+			<span class="font-semibold">The abstraction trap.</span>
+			The granularity that gave the system its power was
+			the same thing that made it unusable. To compose a
+			useful pipeline you had to think in control flow,
+			data flow, conditions, and state. If you can think
+			that way you would just write the bot in Java
+			directly and be done. If you cannot, you would never
+			finish a pipeline. The visual layer did not replace
+			the programming skill, it relocated it onto a canvas.
+		</p>
+
+		<p>
+			<span class="font-semibold">What worked.</span>
+			Multi-bot orchestration was remarkably good. The
+			platform handled a swarm of bots through the same
+			graph editor with far less ceremony than the standard
+			approaches in this space (which tend to be scattered
+			scripts and many different bits of software on different servers). Even if the per-bot
+			graph was overkill for one bot, the way the platform
+			managed many bots was a real improvement over what is
+			normal here.
+		</p>
+
+		<p>
+			<span class="font-semibold">The trace UI.</span> The
+			most novel piece, and the most enjoyable to build.
+			Watching nodes pulse as a live bot worked through the
+			graph was genuinely striking. It was also, in the
+			end, ornamental. A pretty visualisation does not
+			justify a tool nobody can use.
+		</p>
+
+		<p>
+			<span class="font-semibold">What I would do differently.</span>
+			The platform did support fat nodes that bundled lots
+			of activity, and you could even publish them to a
+			node store for other users to download. Two problems
+			emerged. The first was practical: maintaining a
+			sprawl of bundled behaviours across the marketplace
+			was a nightmare. The second was conceptual, and more
+			damaging: once each useful behaviour fits in a single
+			node, the graph editor is not adding anything. If
+			"do the quest" is one node, what is the canvas
+			actually buying you?
+		</p>
+
+		<p>
+			<span class="font-semibold">Future.</span> The
+			conclusion led directly to the next project, which
+			went in the opposite direction. A single
+			all-in-one bot, fully self-managed, no external
+			integrations, no graph editor, no marketplace, no
+			orchestration layer. The user passes a stat sheet of
+			target skill levels and the bot computes the best
+			path itself, with break timers built in instead of
+			composed. The graph walker survives only as an
+			internal implementation detail of the new bot, not as
+			a user-facing tool. Multiple programmers contribute
+			to the same bot repo, and revenue is shared based on
+			which contributions are actually used. GnomeAIO's
+			premise was that the user wanted freedom. The next
+			project removes the freedom on purpose.
+		</p>
+	</Section>
+
+	<Section title="SCREENSHOTS">
+		<p>
+			Two pipelines from the editor, showing the kind of
+			behaviour users wired by hand.
+		</p>
+
+		<Figure caption="fig. 5 · mining pipeline · copper and tin">
+			<img
+				src="/images/mine_copper_tin-BtNaZoxG.png"
+				alt="GnomeAIO pipeline for mining copper and tin ore"
+				class="w-full h-auto"
+			/>
+		</Figure>
+
+		<Figure caption="fig. 6 · mining pipeline · grab and pick">
+			<img
+				src="/images/mine_grab_pick-DW4Ls7_t.png"
+				alt="GnomeAIO pipeline showing the grab-and-pick sub-graph"
+				class="w-full h-auto"
+			/>
+		</Figure>
 	</Section>
 
 	<Section title="SEE ALSO">
-		<p><a href="/projects">/projects</a></p>
+		<p>
+			<a href="/projects">/projects</a>
+		</p>
 	</Section>
 
 </BaseLayout>
